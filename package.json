@@ -1,6 +1,6 @@
 {
   "name": "oidc-login-plugin",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A configurable Vue 3 plugin that adds router guards, axios interceptors, and pinia integration.",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -36,7 +36,7 @@
   "peerDependencies": {
     "axios": "^1.5.0",
     "oidc-client-ts": "^3.4.0",
-    "pinia": "^2.1.7",
+    "pinia": "^3.0.3",
     "vue": "^3.4.0",
     "vue-router": "^4.2.5"
   },
