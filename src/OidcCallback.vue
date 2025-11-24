@@ -4,20 +4,18 @@ import { useUserStore } from './user';
 
 const userStore = useUserStore();
 
-onMounted(async () => {
-  try {
-    await userStore.handleCallback();
-    const isAuth = await userStore.isAuthenticated();
-    if (isAuth && userStore.user) {
-      window.location.href = '/';
-    } else {
-      window.location.href = '/';
-    }
-  } catch (error) {
-    console.error('[OidcCallback] Error during callback:', error);
+try {
+  await userStore.handleCallback();
+  const isAuth = await userStore.isAuthenticated();
+  if (isAuth && userStore.user) {
+    window.location.href = '/';
+  } else {
     window.location.href = '/';
   }
-});
+} catch (error) {
+  console.error('[OidcCallback] Error during callback:', error);
+  window.location.href = '/';
+}
 </script>
 
 <template>

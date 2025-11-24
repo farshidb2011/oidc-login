@@ -2,15 +2,33 @@ import { Router } from "vue-router";
 import { useUserStore } from "./user";
 import { debugLog } from "./debug";
 
-export const setupRouterGuards = (router: Router) => {
+export const setupRouterGuards = (router: Router, redirectUri: string) => {
   debugLog("[SetupRouterGuards]")
 
-  router.beforeEach(async (to) => {
-    // Skip guard for callback route to prevent interference
-    if (to.path === '/callback' || to.name === 'callback') {
-      return true;
-    }
+  const routes = router.getRoutes();
 
+  const url = new URL(redirectUri);
+
+  const route = routes.find(r => r.path == url.pathname);
+
+  if (!route) {
+    router.addRoute({
+      path: url.pathname,
+      name: 'authCallback',
+      beforeEnter: () => {
+        const userStore = useUserStore();
+        userStore.handleCallback().then(() => {
+          router.replace('/');
+        }).catch(() => {
+          location.href = '/';
+        })
+      },
+      component: () => null
+    });
+  }
+
+
+  router.beforeEach(async (to) => {
     const userStore = useUserStore();
     if (to.meta?.requiresAuth) {
       const isAuth = await userStore.isAuthenticated();
@@ -23,3 +41,5 @@ export const setupRouterGuards = (router: Router) => {
     return true;
   });
 };
+
+

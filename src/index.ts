@@ -55,7 +55,7 @@ export default {
 
     // --- Router Guards ---
     if (options.router) {
-      setupRouterGuards(options.router);
+      setupRouterGuards(options.router, options.oidc.userManagerSettings.redirect_uri);
     } else {
       console.warn("[oidc-login-plugin] router instance not provided.");
     }
