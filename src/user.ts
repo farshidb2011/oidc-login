@@ -41,6 +41,7 @@ export const useUserStore = defineStore('user', (): UserStoreState => {
 
     const user = ref<User | null>(null);
     const managerInstance = ref<UserManager | null>(null);
+    const isHandlingCallback = ref(false);
 
     const setUser = (u: User | null) => {
         user.value = u;
@@ -48,11 +49,17 @@ export const useUserStore = defineStore('user', (): UserStoreState => {
     };
 
     const handleCallback = async () => {
+        isHandlingCallback.value = true;
         try {
             const u = await managerInstance.value?.signinRedirectCallback();
             setUser(u || null);
+            // Ensure state is fully persisted before resolving
+            await new Promise(resolve => setTimeout(resolve, 200));
         } catch (error) {
             console.error('SignIn callback error : ', error);
+            throw error;
+        } finally {
+            isHandlingCallback.value = false;
         }
     };
 
@@ -68,6 +75,11 @@ export const useUserStore = defineStore('user', (): UserStoreState => {
     };
 
     const isAuthenticated = async () => {
+        // Wait for any pending callback handling to complete
+        while (isHandlingCallback.value) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
         try {
             const u = await managerInstance.value?.getUser();
             if (u) {
