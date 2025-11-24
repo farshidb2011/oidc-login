@@ -1,17 +1,26 @@
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import { useUserStore } from './user';
 import { useRouter } from 'vue-router';
 
 const userStore = useUserStore();
 const router = useRouter();
 
-try {
-  await userStore.handleCallback();
-  router.push('/');
-} catch (error) {
-  console.error('Callback error:', error);
-  router.replace('/');
-}
+onMounted(async () => {
+  try {
+    await userStore.handleCallback();
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const isAuth = await userStore.isAuthenticated();
+    if (isAuth && userStore.user) {
+      await router.replace('/');
+    } else {
+      await router.replace('/');
+    }
+  } catch (error) {
+    console.error('[OidcCallback] Error during callback:', error);
+    await router.replace('/');
+  }
+});
 </script>
 
 <template>
