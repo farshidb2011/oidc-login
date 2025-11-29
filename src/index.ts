@@ -47,7 +47,7 @@ export default {
 
     // --- Pinia ---
     if (options.pinia) {
-      app.use(options.pinia);
+      // app.use(options.pinia);
       debugLog("[UsePinia]")
     } else {
       console.warn("[oidc-login-plugin] pinia instance not provided.");

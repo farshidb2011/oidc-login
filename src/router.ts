@@ -15,15 +15,16 @@ export const setupRouterGuards = (router: Router, redirectUri: string) => {
     router.addRoute({
       path: url.pathname,
       name: 'authCallback',
-      beforeEnter: () => {
+      component: () => ({ template: '<div></div>' }),
+      beforeEnter: async () => {
         const userStore = useUserStore();
-        userStore.handleCallback().then(() => {
-          router.replace('/');
-        }).catch(() => {
+        try {
+          await userStore.handleCallback();
+          return router.replace('/');
+        } catch {
           location.href = '/';
-        })
-      },
-      component: () => null
+        }
+      }
     });
   }
 
