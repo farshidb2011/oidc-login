@@ -36,7 +36,14 @@ const router = createRouter({
 ### 2. Install the plugin
 
 ```typescript
+import { createPinia } from 'pinia';
+import axios from 'axios';
 import OidcPlugin from 'oidc-login-plugin';
+
+const pinia = createPinia();
+const axiosInstance = axios.create({
+  baseURL: 'https://api.example.com'
+});
 
 app.use(OidcPlugin, {
   pinia,
@@ -47,30 +54,44 @@ app.use(OidcPlugin, {
       authority: 'https://your-idp.com',
       client_id: 'your-client-id',
       redirect_uri: 'http://localhost:3000/callback',
+      post_logout_redirect_uri: 'http://localhost:3000',
       response_type: 'code',
       scope: 'openid profile email',
-    }
-  }
+    },
+    storageKey: 'authToken',
+    redirectUrl: '/login'
+  },
+  identityAppsUrl: 'https://your-idp.com/apps',
+  debug: true
 });
 ```
 
-### 3. Use the store
+### 3. Use the store and composables
 
 ```typescript
-import { useUserStore } from 'oidc-login-plugin';
+import { useUserStore, useGlobal } from 'oidc-login-plugin';
 
+// User store for authentication state
 const userStore = useUserStore();
 const isAuth = await userStore.isAuthenticated();
+const user = userStore.user;
+
+// Global composable for logout with redirect
+const { logout } = useGlobal();
+logout(); // Logs out and redirects to identityAppsUrl
 ```
 
 ## Features
 
-- ✅ Export OidcCallback component
+- ✅ OIDC authentication with oidc-client-ts
+- ✅ Built-in callback component with loading UI
 - ✅ Router guards for protected routes
-- ✅ Axios interceptor with token refresh
-- ✅ Pinia store for user state
-- ✅ Configurable storage keys
-- ✅ Built-in loading UI
+- ✅ Axios interceptor with automatic token refresh
+- ✅ Pinia store for user state management
+- ✅ Global logout with configurable redirect
+- ✅ Configurable storage keys and redirect URLs
+- ✅ Debug mode for development
+- ✅ TypeScript support
 
 ## Documentation
 
