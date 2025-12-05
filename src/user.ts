@@ -102,6 +102,8 @@ export const useUserStore = defineStore('user', (): UserStoreState => {
 
     managerInstance.value?.getUser().then(setUser);
 
+    managerInstance.value?.events.addUserLoaded(setUser);
+
     return {
         user: user as any,
         oidc: managerInstance as any,
