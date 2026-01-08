@@ -1,6 +1,6 @@
 {
   "name": "oidc-login-plugin",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "A configurable Vue 3 plugin that adds router guards, axios interceptors, and pinia integration.",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",

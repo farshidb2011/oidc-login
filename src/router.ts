@@ -17,6 +17,7 @@ export const setupRouterGuards = (router: Router, redirectUri: string) => {
       name: 'authCallback',
       component: () => ({ template: '<div></div>' }),
       beforeEnter: async () => {
+        // Call useUserStore inside the guard, not at setup time
         const userStore = useUserStore();
         try {
           await userStore.handleCallback();
@@ -30,6 +31,7 @@ export const setupRouterGuards = (router: Router, redirectUri: string) => {
 
 
   router.beforeEach(async (to) => {
+    // Call useUserStore inside the guard, not at setup time
     const userStore = useUserStore();
     if (to.meta?.requiresAuth) {
       const isAuth = await userStore.isAuthenticated();
