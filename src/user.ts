@@ -31,6 +31,7 @@ export interface UserStoreState {
     handleCallback: () => Promise<void>;
     refreshToken: () => Promise<void>;
     logout: () => void;
+    hardLogout: () => void;
     isAuthenticated: () => Promise<boolean>;
 }
 
@@ -98,6 +99,13 @@ export const useUserStore = defineStore('user', (): UserStoreState => {
         localStorage.removeItem(oidcConfig!.storageKey as string);
     };
 
+    const hardLogout = () => {
+        logout();
+        managerInstance.value?.signoutSilent({
+            post_logout_redirect_uri: oidcConfig?.userManagerSettings.post_logout_redirect_uri
+        })
+    };
+
     managerInstance.value = new UserManager(oidcConfig!.userManagerSettings);
 
     managerInstance.value?.getUser().then(setUser);
@@ -110,6 +118,7 @@ export const useUserStore = defineStore('user', (): UserStoreState => {
         handleCallback,
         refreshToken,
         logout,
+        hardLogout,
         isAuthenticated
     };
 });
