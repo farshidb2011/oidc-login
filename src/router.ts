@@ -19,10 +19,18 @@ export const setupRouterGuards = (router: Router, redirectUri: string) => {
       beforeEnter: async () => {
         // Call useUserStore inside the guard, not at setup time
         const userStore = useUserStore();
+        const isSilentIframe = window.parent !== window;
         try {
           await userStore.handleCallback();
+          // Silent renew runs in a hidden iframe — do not navigate the SPA there
+          if (isSilentIframe) {
+            return false;
+          }
           return router.replace('/');
         } catch {
+          if (isSilentIframe) {
+            return false;
+          }
           location.href = '/';
         }
       }

@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
 import { useUserStore } from './user';
 
 const userStore = useUserStore();
+const isSilentIframe = window.parent !== window;
 
 try {
   await userStore.handleCallback();
-  const isAuth = await userStore.isAuthenticated();
-  if (isAuth && userStore.user) {
-    window.location.href = '/';
-  } else {
+  // Silent renew completes via postMessage; do not navigate the iframe SPA
+  if (!isSilentIframe) {
     window.location.href = '/';
   }
 } catch (error) {
   console.error('[OidcCallback] Error during callback:', error);
-  window.location.href = '/';
+  if (!isSilentIframe) {
+    window.location.href = '/';
+  }
 }
 </script>
 

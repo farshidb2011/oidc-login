@@ -12,7 +12,12 @@ let oidcConfig: OidcConfig | null = null;
 
 export const setOidcConfig = (config: OidcConfig) => {
     oidcConfig = {
-        userManagerSettings: config.userManagerSettings,
+        userManagerSettings: {
+            // Plugin refreshes via axios 401 interceptor; leave auto-renew opt-in
+            // to avoid racing signinSilent() with interceptor refresh.
+            automaticSilentRenew: false,
+            ...config.userManagerSettings,
+        },
         storageKey: config.storageKey || 'authToken',
         redirectUrl: config.redirectUrl || '/'
     };
@@ -28,11 +33,28 @@ export const getOidcConfig = () => {
 export interface UserStoreState {
     user: User | null;
     oidc: UserManager | null;
-    handleCallback: () => Promise<void>;
+    handleCallback: () => Promise<User | void>;
     refreshToken: () => Promise<void>;
     logout: () => void;
     hardLogout: () => void;
     isAuthenticated: () => Promise<boolean>;
+}
+
+/** Ensures only one signinSilent runs at a time (axios 401s, auto-renew, manual refresh). */
+export function installSigninSilentDedupe(manager: UserManager): UserManager {
+    let silentPromise: Promise<User | null> | null = null;
+    const original = manager.signinSilent.bind(manager);
+
+    manager.signinSilent = ((args?) => {
+        if (!silentPromise) {
+            silentPromise = original(args).finally(() => {
+                silentPromise = null;
+            });
+        }
+        return silentPromise;
+    }) as UserManager['signinSilent'];
+
+    return manager;
 }
 
 export const useUserStore = defineStore('user', (): UserStoreState => {
@@ -52,10 +74,14 @@ export const useUserStore = defineStore('user', (): UserStoreState => {
     const handleCallback = async () => {
         isHandlingCallback.value = true;
         try {
-            const u = await managerInstance.value?.signinRedirectCallback();
-            setUser(u || null);
-            // Ensure state is fully persisted before resolving
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Dispatches redirect / popup / silent based on stored request_type
+            const result = await managerInstance.value?.signinCallback();
+            if (result) {
+                setUser(result);
+                // Ensure state is fully persisted before resolving
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            return result;
         } catch (error) {
             console.error('SignIn callback error : ', error);
             throw error;
@@ -106,7 +132,9 @@ export const useUserStore = defineStore('user', (): UserStoreState => {
         })
     };
 
-    managerInstance.value = new UserManager(oidcConfig!.userManagerSettings);
+    managerInstance.value = installSigninSilentDedupe(
+        new UserManager(oidcConfig!.userManagerSettings)
+    );
 
     managerInstance.value?.getUser().then(setUser);
 
