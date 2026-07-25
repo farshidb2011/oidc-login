@@ -1,8 +1,10 @@
-import { AxiosInstance } from "axios";
+import { AxiosInstance, InternalAxiosRequestConfig } from "axios";
 import { useUserStore, getOidcConfig } from "./user";
 import { debugLog } from "./debug";
 
-let callRefreshToken = false;
+type RetryableRequestConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+
+let refreshPromise: Promise<void> | null = null;
 
 export const setupAxiosInterceptor = (api: AxiosInstance) => {
   const config = getOidcConfig();
@@ -14,25 +16,35 @@ export const setupAxiosInterceptor = (api: AxiosInstance) => {
     async (error) => {
       if (error?.response?.status === 401) {
         const userStore = useUserStore();
-        if (!callRefreshToken) {
-          // Call useUserStore inside the interceptor callback, not at setup time
-          try {
-            await userStore.refreshToken();
-            debugLog("Call refresh token");
-            callRefreshToken = true;
-            setTimeout(() => {
-              callRefreshToken = false;
-            }, 30000);
-            return api.request(error.config);
-          } catch (error) {
-            debugLog("Refresh token error", error)
-            userStore.logout();
-            location.href = config.redirectUrl as string;
-          }
-        } else {
-          debugLog("Already called refresh token, redirecting to login");
+        const requestConfig = error.config as RetryableRequestConfig | undefined;
+
+        if (!requestConfig) {
+          return Promise.reject(error);
+        }
+
+        if (requestConfig._retry) {
+          debugLog("Already retried after refresh, redirecting to login");
           userStore.logout();
-          location.href = config.redirectUrl as string || config.userManagerSettings.authority || "/";
+          location.href = (config.redirectUrl as string) || config.userManagerSettings.authority || "/";
+          return Promise.reject(error);
+        }
+
+        requestConfig._retry = true;
+
+        try {
+          if (!refreshPromise) {
+            debugLog("Call refresh token");
+            refreshPromise = userStore.refreshToken().finally(() => {
+              refreshPromise = null;
+            });
+          }
+          await refreshPromise;
+          return api.request(requestConfig);
+        } catch (refreshError) {
+          debugLog("Refresh token error", refreshError);
+          userStore.logout();
+          location.href = config.redirectUrl as string;
+          return Promise.reject(refreshError);
         }
       }
       return Promise.reject(error);
