@@ -60,7 +60,7 @@ describe("setOidcConfig automaticSilentRenew default", () => {
     vi.resetModules();
   });
 
-  it("defaults automaticSilentRenew to false", async () => {
+  it("defaults automaticSilentRenew to true", async () => {
     const { setOidcConfig, getOidcConfig } = await import("../src/user");
 
     setOidcConfig({
@@ -68,24 +68,24 @@ describe("setOidcConfig automaticSilentRenew default", () => {
         authority: "https://auth.example",
         client_id: "app",
         redirect_uri: "https://app.example/callback",
-      },
-    });
-
-    expect(getOidcConfig().userManagerSettings.automaticSilentRenew).toBe(false);
-  });
-
-  it("keeps explicit automaticSilentRenew: true", async () => {
-    const { setOidcConfig, getOidcConfig } = await import("../src/user");
-
-    setOidcConfig({
-      userManagerSettings: {
-        authority: "https://auth.example",
-        client_id: "app",
-        redirect_uri: "https://app.example/callback",
-        automaticSilentRenew: true,
       },
     });
 
     expect(getOidcConfig().userManagerSettings.automaticSilentRenew).toBe(true);
+  });
+
+  it("keeps explicit automaticSilentRenew: false", async () => {
+    const { setOidcConfig, getOidcConfig } = await import("../src/user");
+
+    setOidcConfig({
+      userManagerSettings: {
+        authority: "https://auth.example",
+        client_id: "app",
+        redirect_uri: "https://app.example/callback",
+        automaticSilentRenew: false,
+      },
+    });
+
+    expect(getOidcConfig().userManagerSettings.automaticSilentRenew).toBe(false);
   });
 });

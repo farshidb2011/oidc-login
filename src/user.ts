@@ -13,9 +13,9 @@ let oidcConfig: OidcConfig | null = null;
 export const setOidcConfig = (config: OidcConfig) => {
     oidcConfig = {
         userManagerSettings: {
-            // Plugin refreshes via axios 401 interceptor; leave auto-renew opt-in
-            // to avoid racing signinSilent() with interceptor refresh.
-            automaticSilentRenew: false,
+            // Proactive renew before expiry; concurrent calls are deduped via
+            // installSigninSilentDedupe so axios 401 refresh stays safe.
+            automaticSilentRenew: true,
             ...config.userManagerSettings,
         },
         storageKey: config.storageKey || 'authToken',
