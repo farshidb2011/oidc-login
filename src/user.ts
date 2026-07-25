@@ -35,6 +35,7 @@ export interface UserStoreState {
     oidc: UserManager | null;
     handleCallback: () => Promise<User | void>;
     refreshToken: () => Promise<void>;
+    trySilentRenew: () => Promise<boolean>;
     logout: () => void;
     hardLogout: () => void;
     isAuthenticated: () => Promise<boolean>;
@@ -101,6 +102,24 @@ export const useUserStore = defineStore('user', (): UserStoreState => {
         }
     };
 
+    /** Attempt silent renew when a stored (possibly expired) user exists. */
+    const trySilentRenew = async (): Promise<boolean> => {
+        try {
+            const existing = await managerInstance.value?.getUser();
+            if (!existing) return false;
+
+            const u = await managerInstance.value?.signinSilent();
+            if (u) {
+                setUser(u);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Silent renew error : ', error);
+            return false;
+        }
+    };
+
     const isAuthenticated = async () => {
         // Wait for any pending callback handling to complete
         while (isHandlingCallback.value) {
@@ -145,6 +164,7 @@ export const useUserStore = defineStore('user', (): UserStoreState => {
         oidc: managerInstance as any,
         handleCallback,
         refreshToken,
+        trySilentRenew,
         logout,
         hardLogout,
         isAuthenticated

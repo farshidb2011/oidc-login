@@ -1,19 +1,22 @@
 <script setup lang="ts">
 import { useUserStore } from './user';
+import { consumeReturnUrl } from './returnUrl';
 
 const userStore = useUserStore();
 const isSilentIframe = window.parent !== window;
 
 try {
-  await userStore.handleCallback();
+  const result = await userStore.handleCallback();
   // Silent renew completes via postMessage; do not navigate the iframe SPA
   if (!isSilentIframe) {
-    window.location.href = '/';
+    window.location.href = consumeReturnUrl(
+      result && typeof result === 'object' && 'state' in result ? result.state : undefined
+    );
   }
 } catch (error) {
   console.error('[OidcCallback] Error during callback:', error);
   if (!isSilentIframe) {
-    window.location.href = '/';
+    window.location.href = consumeReturnUrl();
   }
 }
 </script>
