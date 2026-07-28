@@ -39,6 +39,16 @@ export const setupAxiosInterceptor = (api: AxiosInstance) => {
             });
           }
           await refreshPromise;
+
+          const token = localStorage.getItem(config.storageKey as string);
+          if (token && requestConfig.headers) {
+            if (typeof requestConfig.headers.set === "function") {
+              requestConfig.headers.set("Authorization", `Bearer ${token}`);
+            } else {
+              (requestConfig.headers as Record<string, string>).Authorization = `Bearer ${token}`;
+            }
+          }
+
           return api.request(requestConfig);
         } catch (refreshError) {
           debugLog("Refresh token error", refreshError);

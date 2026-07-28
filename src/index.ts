@@ -6,7 +6,7 @@ import type { AxiosInstance } from "axios";
 import type { UserManagerSettings } from "oidc-client-ts";
 import { setupRouterGuards } from "./router";
 import { setupAxiosInterceptor } from "./axios";
-import { setOidcConfig } from "./user";
+import { setOidcConfig, useUserStore } from "./user";
 import { debugLog, setDebug } from "./debug";
 import { setIdentityAppsUrl } from "./logout";
 
@@ -45,9 +45,9 @@ export default {
       setIdentityAppsUrl(options.identityAppsUrl);
     }
 
-    // --- Pinia ---
+    // --- Pinia / bootstrap UserManager early for automaticSilentRenew ---
     if (options.pinia) {
-      // app.use(options.pinia);
+      useUserStore();
       debugLog("[UsePinia]")
     } else {
       console.warn("[oidc-login-plugin] pinia instance not provided.");

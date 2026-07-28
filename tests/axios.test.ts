@@ -132,6 +132,28 @@ describe("setupAxiosInterceptor concurrent 401 handling", () => {
     expect(location.href).toBe("/login");
   });
 
+  it("updates Authorization header from storage before retry", async () => {
+    const api = createApi();
+    const onRejected = await setupInterceptor(api);
+
+    vi.spyOn(Storage.prototype, "getItem").mockReturnValue("fresh-token");
+    refreshToken.mockResolvedValue(undefined);
+
+    const requestSpy = vi
+      .spyOn(api, "request")
+      .mockResolvedValue({ data: "ok", status: 200 } as any);
+
+    await onRejected(make401("/a"));
+
+    expect(requestSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer fresh-token",
+        }),
+      })
+    );
+  });
+
   it("logs out when a retried request still returns 401", async () => {
     const api = createApi();
     const onRejected = await setupInterceptor(api);

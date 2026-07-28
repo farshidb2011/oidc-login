@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { User, UserManager, UserManagerSettings } from 'oidc-client-ts';
+import { debugLog } from './debug';
 
 interface OidcConfig {
     userManagerSettings: UserManagerSettings;
@@ -94,9 +95,11 @@ export const useUserStore = defineStore('user', (): UserStoreState => {
     const refreshToken = async () => {
         const existing = await managerInstance.value?.getUser();
         if (!existing) throw new Error('User not found');
+        user.value = existing;
         try {
             const u = await managerInstance.value?.signinSilent();
-            if (u) setUser(u);
+            if (!u) throw new Error('Silent renew returned no user');
+            setUser(u);
         } catch (error) {
             console.error('Refresh token error : ', error);
             throw error;
@@ -156,9 +159,33 @@ export const useUserStore = defineStore('user', (): UserStoreState => {
         new UserManager(oidcConfig!.userManagerSettings)
     );
 
-    managerInstance.value?.getUser().then(setUser);
+    const renewIfExpired = async () => {
+        try {
+            const u = await managerInstance.value?.signinSilent();
+            if (u) setUser(u);
+        } catch (error) {
+            console.error('Silent renew error : ', error);
+        }
+    };
+
+    managerInstance.value?.getUser().then(async (u: User | null) => {
+        if (!u) return;
+        setUser(u);
+        // oidc-client-ts only renews before expiry; if the tab was closed and the
+        // access token is already expired, proactively renew on load.
+        if (u.expired) {
+            debugLog('[UserStore] User expired on load, attempting silent renew');
+            await renewIfExpired();
+        }
+    });
 
     managerInstance.value?.events.addUserLoaded(setUser);
+
+    // Fallback when accessTokenExpiring was missed (e.g. tab backgrounded/sleeping).
+    managerInstance.value?.events.addAccessTokenExpired(() => {
+        debugLog('[UserStore] Access token expired, attempting silent renew');
+        void renewIfExpired();
+    });
 
     return {
         user: user as any,
