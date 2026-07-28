@@ -92,7 +92,8 @@ export const useUserStore = defineStore('user', (): UserStoreState => {
     };
 
     const refreshToken = async () => {
-        if (!user.value) throw new Error('User not found');
+        const existing = await managerInstance.value?.getUser();
+        if (!existing) throw new Error('User not found');
         try {
             const u = await managerInstance.value?.signinSilent();
             if (u) setUser(u);
